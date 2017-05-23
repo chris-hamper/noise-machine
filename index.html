@@ -1,0 +1,117 @@
+<html>
+<head>
+<script type="application/javascript">
+
+  var freq = 6;
+  var intensity = 1;
+
+  var audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  var gainNode = audioContext.createGain();
+
+  gainNode.gain.value = 0.3;
+
+  var bufferSize = 16384;
+
+  var whiteNoise = audioContext.createScriptProcessor(bufferSize, 1, 1);
+  whiteNoise.onaudioprocess = function(e) {
+    var output = e.outputBuffer.getChannelData(0);
+    for (var i = 0; i < bufferSize; i++) {
+      output[i] = (Math.random() * 2 - 1) * 0.8;
+    }
+  }
+
+  var pinkNoise = (function() {
+    var b0, b1, b2, b3, b4, b5, b6;
+    b0 = b1 = b2 = b3 = b4 = b5 = b6 = 0.0;
+    var node = audioContext.createScriptProcessor(bufferSize, 1, 1);
+    node.onaudioprocess = function(e) {
+      var output = e.outputBuffer.getChannelData(0);
+      for (var i = 0; i < bufferSize; i++) {
+        var white = Math.random() * 2 - 1;
+        b0 = 0.99886 * b0 + white * 0.0555179;
+        b1 = 0.99332 * b1 + white * 0.0750759;
+        b2 = 0.96900 * b2 + white * 0.1538520;
+        b3 = 0.86650 * b3 + white * 0.3104856;
+        b4 = 0.55000 * b4 + white * 0.5329522;
+        b5 = -0.7616 * b5 - white * 0.0168980;
+        output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+        output[i] *= 0.2; // (roughly) compensate for gain
+        b6 = white * 0.115926;
+      }
+    };
+    return node;
+  })();
+
+  var brownNoise = (function() {
+    var lastOut = 0.0;
+    var node = audioContext.createScriptProcessor(bufferSize, 1, 1);
+    node.onaudioprocess = function(e) {
+      var output = e.outputBuffer.getChannelData(0);
+      for (var i = 0; i < bufferSize; i++) {
+        var white = Math.random() * 2 - 1;
+        output[i] = (lastOut + (0.02 * white)) / 1.02;
+        lastOut = output[i];
+        output[i] *= 6.5; // (roughly) compensate for gain
+      }
+    }
+    return node;
+  })();
+
+  connectPink();
+  gainNode.connect(audioContext.destination);
+
+  function onSlider() {
+    gainNode.gain.value = document.querySelector('#volume').value / 100;
+    document.querySelector('#vol-value').value = gainNode.gain.value;
+  }
+
+  function connectWhite() {
+    pinkNoise.disconnect();
+    brownNoise.disconnect();
+    whiteNoise.connect(gainNode);
+  }
+
+  function connectPink() {
+    whiteNoise.disconnect();
+    brownNoise.disconnect();
+    pinkNoise.connect(gainNode);
+  }
+
+  function connectBrown() {
+    whiteNoise.disconnect();
+    pinkNoise.disconnect();
+    brownNoise.connect(gainNode);
+  }
+
+</script>
+    <style type="text/css">
+        input[type=text] {
+            width: 4em;
+            text-align: right;
+        }
+        input[type=range] {
+            width: 250px;
+        }
+    </style>
+</head>
+<body>
+
+<button id="white-btn" onclick="connectWhite()">
+    White Noise
+</button>
+<button id="pink-btn" onclick="connectPink()">
+    Pink Noise
+</button>
+<button id="brown-btn" onclick="connectBrown()">
+    Brownian Noise
+</button>
+
+<form>
+    <p>Volume:<br/>
+        <input type="text" id="vol-value" value="30" readonly>
+        <input type="range" id="volume" value="30" min="0" max="100" step="1" onchange="onSlider()">
+    </p>
+</form>
+
+</body>
+</html>
