@@ -92,6 +92,14 @@
     brownNoise.connect(gainNode);
   }
 
+  function stop() {
+    init();
+
+    whiteNoise.disconnect();
+    pinkNoise.disconnect();
+    brownNoise.disconnect();
+  }
+
 </script>
 
     <style type="text/css">
@@ -114,6 +122,9 @@
 </button>
 <button id="brown-btn" onclick="connectBrown()">
     Brownian Noise
+</button>
+<button id="stop-btn" onclick="stop()">
+    Stop
 </button>
 
 <form>
